@@ -1,0 +1,28 @@
+# RemedyGS — pip-installable dependencies
+# For: scripts/inference.sh, scripts/victim.sh
+#
+# Prerequisites: Linux, NVIDIA GPU, Python 3.10+, CUDA toolkit matching your PyTorch build.
+# Install PyTorch first if the default index does not match your CUDA version:
+#   https://pytorch.org/get-started/locally/
+#
+#   pip install -r requirements.txt
+#
+# CUDA extensions (diff_gaussian_rasterization, simple_knn) are NOT listed here —
+# they must be built from repo submodules. See LOCAL_PACKAGES.md.
+
+torch>=2.0.0
+torchvision>=0.15.0
+numpy>=1.24.0
+pillow>=10.0.0
+tqdm>=4.65.0
+matplotlib>=3.7.0
+opencv-python>=4.8.0
+plyfile>=1.0.0
+gpuinfo>=1.0.0a7
+
+# --- Optional: only if you run training or extra inference/dataset_tool scripts ---
+# PyYAML>=6.0
+# easydict>=1.13
+# h5py>=3.8.0
+# lpips>=0.1.4
+# wandb>=0.15.0
