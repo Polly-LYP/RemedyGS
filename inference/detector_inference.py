@@ -10,7 +10,7 @@ from torch.utils.data import DataLoader, Dataset
 from torchvision import transforms
 from tqdm import tqdm
 
-from model import DiscriminatorNet
+from model import DetectorNet
 
 IMG_EXTS = {".jpg", ".jpeg", ".png"}
 # Training resolution of the detector (paper Sec. 4.1: images resized to 960x528).
@@ -61,7 +61,7 @@ def run_detector(args):
         pin_memory=True,
     )
 
-    net = DiscriminatorNet().to(device)
+    net = DetectorNet().to(device)
     checkpoint = torch.load(args.load_existing_model_path, map_location=device)
     state_dict = (
         checkpoint["state_dict"]

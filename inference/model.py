@@ -58,10 +58,12 @@ class SharpenAddNet_deeper_cGAN_v1(nn.Module):
         return x_5, x_10
 
 
-class DiscriminatorNet(nn.Module):
+class DetectorNet(nn.Module):
     """RemedyGS detector: four stacked 2D conv layers + linear classification head.
 
     Binary classifier: 1 = poisoned, 0 = clean. Operates on 528x960 crops.
+    (This is the input-image detector from paper Sec. 4.1 — NOT the GAN
+    discriminator used only during purifier adversarial training.)
     """
 
     def __init__(self, N=256):
