@@ -56,3 +56,32 @@ class SharpenAddNet_deeper_cGAN_v1(nn.Module):
         x_9 = self.decoder_4(x_8 + x_2)
         x_10 = self.decoder_5(x_9 + x_1)
         return x_5, x_10
+
+
+class DiscriminatorNet(nn.Module):
+    """RemedyGS detector: four stacked 2D conv layers + linear classification head.
+
+    Binary classifier: 1 = poisoned, 0 = clean. Operates on 528x960 crops.
+    """
+
+    def __init__(self, N=256):
+        super().__init__()
+        self.encoder = nn.Sequential(
+            nn.Conv2d(3, N, kernel_size=5, stride=2, padding=2),
+            nn.GELU(),
+            nn.Conv2d(N, N, kernel_size=5, stride=2, padding=2),
+            nn.GELU(),
+            nn.Conv2d(N, N, kernel_size=5, stride=2, padding=2),
+            nn.GELU(),
+            nn.Conv2d(N, N, kernel_size=5, stride=2, padding=2),
+        )
+        self.classifier = nn.Sequential(
+            nn.Linear(33 * 60 * N, 128),
+            nn.Linear(128, 2),
+        )
+
+    def forward(self, x):
+        y = self.encoder(x)
+        y = y.view(y.size(0), -1)
+        out = self.classifier(y)
+        return out

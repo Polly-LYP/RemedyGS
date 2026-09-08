@@ -8,7 +8,7 @@ Official PyTorch implementation of our paper:
 
 [Yanping Li](https://github.com/Polly-LYP) · [Zhening Liu](https://www.liuzhening.top) · [Zijian Li](https://zli999.github.io/zijianli.github.io/) · [Zehong Lin](https://zhlinup.github.io/) · [Jun Zhang](https://eejzhang.people.ust.hk/)
 
-[[Paper](https://arxiv.org/abs/2511.22147)] · [[Code](https://github.com/Polly-LYP/RemedyGS)]
+[[Paper](https://arxiv.org/abs/2511.22147)] · [[Code](https://github.com/Polly-LYP/RemedyGS)] · [[Dataset](https://huggingface.co/datasets/ZincL/RemedyGS)] · [[Detector Checkpoint](https://huggingface.co/ZincL/RemedyGS-detector)]
 
 </div>
 
@@ -85,10 +85,19 @@ cd ../..
 
 ### 5. Prepare data and checkpoint
 
-**Defense checkpoint** (included in repo):
+**Defense checkpoints**:
 
 ```
-ckpt/G_ckpt.pth.tar
+ckpt/D_ckpt.pth       # Detector (poisoned vs. clean image classifier) — download from HuggingFace
+ckpt/G_ckpt.pth.tar   # Purifier (encoder-decoder generator) — included in repo
+```
+
+The purifier checkpoint is included in this repo. Download the detector checkpoint (~267 MB) from [ZincL/RemedyGS-detector](https://huggingface.co/ZincL/RemedyGS-detector):
+
+```bash
+pip install -U huggingface_hub
+hf download ZincL/RemedyGS-detector D_ckpt.pth --repo-type model --local-dir ckpt/
+# or: wget https://huggingface.co/ZincL/RemedyGS-detector/resolve/main/D_ckpt.pth -O ckpt/D_ckpt.pth
 ```
 
 **Poisoned evaluation scenes** (COLMAP format: `images/` + `sparse/0/`):
@@ -109,7 +118,43 @@ example/MIP_Nerf_360_eps16/
 
 Scene names used during inference are listed in `example/dataset_list.txt`. Poisoned Mip-NeRF 360 scenes can be generated with the official [Poison-splat](https://github.com/jiahaolu97/poison-splat) codebase (e.g., `eps=16`).
 
+### 6. (Optional) Download the RemedyGSData benchmark
+
+We release **RemedyGSData**, the large-scale poisoned 3DGS training dataset used in our paper, on HuggingFace: [ZincL/RemedyGS](https://huggingface.co/datasets/ZincL/RemedyGS).
+
+- **702 real-world scenes** derived from DL3DV-10K, poisoned by the bounded Poison-splat attacker at 7 perturbation budgets (`eps ∈ {16, 26, 35, 40, 50, 100, 150}` ×1/255), ~975 GB in total.
+- Standard COLMAP format (`images/` + `sparse/0/`), drop-in compatible with vanilla 3DGS training; per-scene `.tar` shards with `scene_metadata.csv`.
+
+```bash
+pip install -U huggingface_hub
+
+# everything (~975 GB)
+hf download ZincL/RemedyGS --repo-type dataset
+
+# or a single scene
+hf download ZincL/RemedyGS eps16~eps150/eps16_<scene_hash>.tar --repo-type dataset
+```
+
 ## :rocket: Run
+
+### Detector inference
+
+Classify input images as poisoned or clean with the trained detector (four stacked 2D conv layers + linear head, binary output: 1 = poisoned, 0 = clean):
+
+```bash
+bash scripts/detector.sh
+```
+
+This runs `inference/detector_inference.py` with:
+
+| Argument | Default |
+|----------|---------|
+| Input scenes | `./example/MIP_Nerf_360_eps16` |
+| Scene list | `./example/dataset_list.txt` |
+| Checkpoint | `./ckpt/D_ckpt.pth` (download from [HuggingFace](https://huggingface.co/ZincL/RemedyGS-detector), see above) |
+| Output | `./example/output/detector_predictions.txt` (per-image) + `poisoned_images.txt` (flagged list) |
+
+Only images flagged as poisoned need to be passed to the purifier below; clean images are kept as-is to preserve utility.
 
 ### Defense inference
 
@@ -173,11 +218,12 @@ python ./victim/gaussian-splatting/benchmark.py --gpu 0 \
 
 ```
 RemedyGS/
-├── ckpt/                          # Defense checkpoint (G_ckpt.pth.tar)
+├── ckpt/                          # Defense checkpoints (D_ckpt.pth detector, G_ckpt.pth.tar purifier)
 ├── inference/                     # Detector & purifier inference code
 ├── victim/gaussian-splatting/     # 3DGS victim training (benchmark)
 ├── scripts/
-│   ├── inference.sh               # Defense inference
+│   ├── detector.sh                # Detector inference (poisoned vs. clean)
+│   ├── inference.sh               # Purifier inference
 │   └── victim.sh                  # Victim benchmark (parallel scenes)
 ├── example/
 │   ├── MIP_Nerf_360_eps16/        # Poisoned scenes (user-provided / local)
